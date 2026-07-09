@@ -99,11 +99,8 @@ export function MobileMenu({
 
                 <div className="my-1 h-px bg-border" />
 
-                {/* Tema */}
-                <div className="flex items-center justify-between rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium">Tema</span>
-                  <ThemeToggle />
-                </div>
+                {/* Tema (fila completa tocable) */}
+                <ThemeToggle variant="menu" />
 
                 {email && (
                   <button

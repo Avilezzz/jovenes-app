@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
+function useThemeToggle() {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -27,6 +27,38 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     setIsDark(next);
   }
 
+  return { mounted, isDark, toggle };
+}
+
+export function ThemeToggle({
+  className = "",
+  variant = "icon",
+}: {
+  className?: string;
+  variant?: "icon" | "menu";
+}) {
+  const { mounted, isDark, toggle } = useThemeToggle();
+
+  // Variante de fila completa (para el menú móvil): toda la fila es tocable.
+  if (variant === "menu") {
+    return (
+      <button
+        onClick={toggle}
+        className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-accent-soft"
+        aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      >
+        <span className="flex items-center gap-3">
+          {mounted && isDark ? <Sun size={18} /> : <Moon size={18} />}
+          {mounted ? (isDark ? "Modo claro" : "Modo oscuro") : "Tema"}
+        </span>
+        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">
+          {mounted ? (isDark ? "Oscuro" : "Claro") : ""}
+        </span>
+      </button>
+    );
+  }
+
+  // Variante ícono (navbar de escritorio).
   return (
     <button
       onClick={toggle}
@@ -34,7 +66,6 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Modo claro" : "Modo oscuro"}
     >
-      {/* Evita parpadeo de icono antes de montar */}
       {mounted ? (
         isDark ? (
           <Sun size={18} />
