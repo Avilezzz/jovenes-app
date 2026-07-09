@@ -1,10 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Mail, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import type { AuthState } from "@/app/auth/actions";
 
 type Props = {
@@ -28,6 +36,7 @@ function SubmitButton({ label }: { label: string }) {
 
 export function AuthForm({ mode, action }: Props) {
   const [state, formAction] = useActionState<AuthState, FormData>(action, {});
+  const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
   const isLogin = mode === "login";
@@ -63,13 +72,24 @@ export function AuthForm({ mode, action }: Props) {
           <input
             id="password"
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete={isLogin ? "current-password" : "new-password"}
             required
             minLength={8}
             placeholder="Mínimo 8 caracteres"
-            className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm outline-none transition-shadow focus:ring-2 focus:ring-accent/40"
+            className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-11 text-sm outline-none transition-shadow focus:ring-2 focus:ring-accent/40"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+            aria-label={
+              showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
+            title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
       </div>
 
