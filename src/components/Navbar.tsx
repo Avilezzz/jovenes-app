@@ -30,7 +30,7 @@ export async function Navbar() {
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
       notifications = (data as Notification[]) ?? [];
     }
   }

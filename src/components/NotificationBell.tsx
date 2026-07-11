@@ -2,9 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, CheckCircle2, XCircle, BellOff } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  XCircle,
+  BellOff,
+  CheckCheck,
+  Trash2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
 import type { Notification } from "@/lib/types";
+
+// Máximo de notificaciones que mantenemos en memoria (coincide con el auto-límite de la BD).
+const MAX_ITEMS = 50;
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -27,6 +38,7 @@ export function NotificationBell({
   const [items, setItems] = useState<Notification[]>(initial);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const unread = items.filter((n) => !n.read).length;
 
@@ -57,11 +69,16 @@ export function NotificationBell({
             if (payload.eventType === "INSERT") {
               const row = payload.new as Notification;
               setItems((prev) =>
-                prev.some((n) => n.id === row.id) ? prev : [row, ...prev],
+                prev.some((n) => n.id === row.id)
+                  ? prev
+                  : [row, ...prev].slice(0, MAX_ITEMS),
               );
             } else if (payload.eventType === "UPDATE") {
               const row = payload.new as Notification;
               setItems((prev) => prev.map((n) => (n.id === row.id ? row : n)));
+            } else if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as { id: string }).id;
+              setItems((prev) => prev.filter((n) => n.id !== oldId));
             }
           },
         )
@@ -85,25 +102,36 @@ export function NotificationBell({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  async function toggle() {
-    const next = !open;
-    setOpen(next);
-    // Al abrir, marcar como leídas
-    if (next && unread > 0) {
-      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-      const supabase = createClient();
-      await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", userId)
-        .eq("read", false);
+  async function markAllRead() {
+    if (unread === 0) return;
+    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    const supabase = createClient();
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", userId)
+      .eq("read", false);
+  }
+
+  async function deleteAll() {
+    if (items.length === 0) return;
+    const prev = items;
+    setItems([]); // optimista
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", userId);
+    if (error) {
+      setItems(prev);
+      toast("No se pudieron borrar las notificaciones.", "error");
     }
   }
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={toggle}
+        onClick={() => setOpen((o) => !o)}
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent-soft"
         aria-label="Notificaciones"
       >
@@ -124,8 +152,31 @@ export function NotificationBell({
             transition={{ duration: 0.15 }}
             className="fixed inset-x-3 top-16 z-[60] w-auto overflow-hidden rounded-2xl border border-border bg-surface shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-80"
           >
-            <div className="border-b border-border px-4 py-3">
+            {/* Cabecera con acciones */}
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <p className="font-semibold">Notificaciones</p>
+              <div className="flex items-center gap-1">
+                {unread > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+                    title="Marcar todas como leídas"
+                    aria-label="Marcar todas como leídas"
+                  >
+                    <CheckCheck size={16} />
+                  </button>
+                )}
+                {items.length > 0 && (
+                  <button
+                    onClick={deleteAll}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-red-600 hover:text-white"
+                    title="Borrar todas"
+                    aria-label="Borrar todas las notificaciones"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {items.length === 0 ? (
@@ -134,13 +185,15 @@ export function NotificationBell({
                 <p className="text-sm text-muted">Aún no tienes notificaciones.</p>
               </div>
             ) : (
-              <ul className="max-h-96 divide-y divide-border overflow-y-auto">
+              <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto sm:max-h-96">
                 {items.map((n) => {
                   const approved = n.type === "approved";
                   return (
                     <li
                       key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-accent-soft/40"
+                      className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-accent-soft/40 ${
+                        n.read ? "" : "bg-accent-soft/30"
+                      }`}
                     >
                       <span className="mt-0.5 shrink-0">
                         {approved ? (
@@ -167,6 +220,9 @@ export function NotificationBell({
                           {timeAgo(n.created_at)}
                         </p>
                       </div>
+                      {!n.read && (
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
+                      )}
                     </li>
                   );
                 })}
