@@ -13,7 +13,15 @@ export const authSchema = z.object({
 });
 
 // Solo aceptamos enlaces de invitación oficiales de WhatsApp.
-const whatsappRegex = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{6,40}$/;
+// Se admite una barra final opcional y parámetros de seguimiento
+// (?s=..&p=.. etc.) que WhatsApp agrega al compartir; luego se limpian.
+const whatsappRegex =
+  /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{6,40}\/?(\?\S*)?$/;
+
+// Deja el enlace en su forma canónica: sin barra final ni parámetros.
+function cleanWhatsappUrl(url: string): string {
+  return url.split(/[?#]/)[0].replace(/\/+$/, "");
+}
 
 export const groupSchema = z
   .object({
@@ -40,7 +48,9 @@ export const groupSchema = z
       .regex(
         whatsappRegex,
         "Debe ser un enlace válido: https://chat.whatsapp.com/...",
-      ),
+      )
+      // Guarda el enlace limpio (sin ?parámetros de seguimiento).
+      .transform(cleanWhatsappUrl),
     members_hint: z.coerce
       .number()
       .int()
