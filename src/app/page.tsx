@@ -63,7 +63,7 @@ export default async function Home() {
           {/* Resplandor decorativo detrás */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-accent/25 via-accent/5 to-transparent blur-3xl"
+            className="pointer-events-none absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-accent/25 via-accent/5 to-transparent blur-2xl"
           />
           <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-xl ring-1 ring-black/5">
             <Image

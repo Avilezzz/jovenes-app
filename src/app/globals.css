@@ -80,6 +80,17 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Evita el scroll/desplazamiento horizontal en móviles.
+     `clip` no rompe el navbar sticky (a diferencia de overflow:hidden). */
+  overflow-x: clip;
+}
+
+/* Ningún elemento debe superar el ancho de la pantalla */
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
 }
 
 /* Scrollbar sutil */
